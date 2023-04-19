@@ -1,9 +1,15 @@
 *.class
 *.log
+
+# Scala files
 .bsp
 .scala-build
+.metals
 
 # LaTeX files
 *.aux
 *.log
 *.synctex.gz
+
+# vscode
+.vscode
