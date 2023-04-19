@@ -2,3 +2,8 @@
 *.log
 .bsp
 .scala-build
+
+# LaTeX files
+*.aux
+*.log
+*.synctex.gz
