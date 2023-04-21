@@ -16,3 +16,6 @@
 
 # project results
 project/results/*
+
+# playground
+playground/*
