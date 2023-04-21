@@ -13,3 +13,6 @@
 
 # vscode
 .vscode
+
+# project results
+project/results/*
