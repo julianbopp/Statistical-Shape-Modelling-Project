@@ -32,4 +32,7 @@ object GPmodel extends App {
     // Define Gaussian Kernel
     val scalarValuedGaussianKernel : PDKernel[_3D]= GaussianKernel3D(sigma = 100.0)
     val matrixValuedGaussianKernel = DiagonalKernel3D(scalarValuedGaussianKernel, 3) 
+
+    // Define Gaussian process
+    val gp = GaussianProcess3D[EuclideanVector[_3D]](zeroMean, matrixValuedGaussianKernel)
 }
