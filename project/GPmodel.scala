@@ -25,5 +25,11 @@ object GPmodel extends App {
     val referenceMesh = MeshIO.readMesh(new java.io.File("project-data/reference-mesh/reference.stl")).get
     val modelGroup = ui.createGroup("gp-model")
     val referenceView = ui.show(modelGroup, referenceMesh, "reference")
-  
+
+    // Define mean deformation as zero mean (i.e. we assume reference shape to be mean shape)
+    val zeroMean = Field(EuclideanSpace3D, (pt:Point[_3D]) => EuclideanVector3D(0,0,0))
+
+    // Define Gaussian Kernel
+    val scalarValuedGaussianKernel : PDKernel[_3D]= GaussianKernel3D(sigma = 100.0)
+    val matrixValuedGaussianKernel = DiagonalKernel3D(scalarValuedGaussianKernel, 3) 
 }
