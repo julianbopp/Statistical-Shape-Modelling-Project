@@ -19,5 +19,11 @@ object GPmodel extends App {
     implicit val rng: scalismo.utils.Random = scalismo.utils.Random(42)
 
     val ui = ScalismoUI()
+
+
+    // Load reference mesh and display in separate group
+    val referenceMesh = MeshIO.readMesh(new java.io.File("project-data/reference-mesh/reference.stl")).get
+    val modelGroup = ui.createGroup("gp-model")
+    val referenceView = ui.show(modelGroup, referenceMesh, "reference")
   
 }
