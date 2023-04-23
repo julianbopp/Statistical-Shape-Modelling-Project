@@ -11,6 +11,9 @@
 *.log
 *.synctex.gz
 
+# Kate editor file
+.project_report.tex.kate-swp
+
 # vscode
 .vscode
 
