@@ -99,6 +99,10 @@ object GPmodel extends App {
         )
         .get
     }
+    val model = PointDistributionModel(referenceMesh,lowRankGP)  //creating the model
+    ui.show(modelGroup , model , "gp model")
+
+    val gpModel = StatisticalModelIO.writeStatisticalTriangleMeshModel3D(model, new java.io.File("gpmodel.h5")) //saving the model
 
 
     val p1 = referenceLandmarks(3).point
