@@ -129,5 +129,5 @@ object Tutorial7 extends App {
   val sampleGpSym = gpSym.sampleAtPoints(referenceMesh)
 
   ui.show(sampleGroup, sampleGpSym, "ChangePointKernelGP_sample")
-  ui.close()
+  //ui.close()
 }
