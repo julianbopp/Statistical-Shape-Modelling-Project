@@ -10,6 +10,7 @@
 *.aux
 *.log
 *.synctex.gz
+*.out
 
 # Kate editor file
 .project_report.tex.kate-swp
