@@ -12,6 +12,7 @@ import scalismo.kernels._
 import scalismo.ui.api._
 
 import breeze.linalg.{DenseMatrix, DenseVector}
+import scalismo.io.LandmarkIO
 
 object GPmodel extends App {
 
@@ -20,6 +21,9 @@ object GPmodel extends App {
 
     val ui = ScalismoUI()
 
+    // Create Directory to store results in
+    val resultDir = new java.io.File("results/lowRankSamples")
+    resultDir.mkdirs()
 
     // Load reference mesh and display in separate group
     val referenceMesh = MeshIO.readMesh(new java.io.File("project-data/reference-mesh/reference.stl")).get
@@ -35,4 +39,35 @@ object GPmodel extends App {
 
     // Define Gaussian process
     val gp = GaussianProcess3D[EuclideanVector[_3D]](zeroMean, matrixValuedGaussianKernel)
+
+   // Define Low-rank approximation 
+    val lowRankGP = LowRankGaussianProcess.approximateGPCholesky(
+        referenceMesh,
+        gp,
+        relativeTolerance = 0.1,
+        interpolator = TriangleMeshInterpolator3D[EuclideanVector[_3D]]()
+    )
+
+    var  defField : Field[_3D, EuclideanVector[_3D]]= lowRankGP.sample()
+    referenceMesh.transform((p : Point[_3D]) => p + defField(p))
+    var pdm = PointDistributionModel3D(referenceMesh, lowRankGP)
+    var pdmView = ui.show(modelGroup, pdm, "group")
+
+
+    val numOfSamples: Int = 20
+    val sampleGroup = ui.createGroup("gp-sample")
+
+    // Sample from the LowRankGaussianProcess object
+    val defFieldSamples = (0 until numOfSamples).map(_ => lowRankGP.sample()).toList
+    //val landmarkViews = ui.filter[LandmarkView](group, (v : LandmarkView) => true)
+
+    for (i <- 0 until numOfSamples) {
+        val defField = defFieldSamples(i) 
+        val sampleMesh = referenceMesh.transform((p : Point[_3D]) => p + defField(p))
+        ui.show(sampleGroup, sampleMesh, s"sample-$i")
+        MeshIO
+            .writeMesh(sampleMesh, new java.io.File(resultDir, s"$i.stl"))
+            .get
+    }
+
 }
