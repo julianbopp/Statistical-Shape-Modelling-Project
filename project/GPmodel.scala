@@ -30,31 +30,31 @@ object GPmodel extends App {
     val modelGroup = ui.createGroup("gp-model")
     val referenceView = ui.show(modelGroup, referenceMesh, "reference")
 
+    // Load reference Landmarks
+    val referenceLandmarks = LandmarkIO
+      .readLandmarksJson3D(
+        new java.io.File("project-data/reference-landmarks/reference.json")
+      )
+      .get
+
     // Define mean deformation as zero mean (i.e. we assume reference shape to be mean shape)
     val zeroMean = Field(EuclideanSpace3D, (pt:Point[_3D]) => EuclideanVector3D(0,0,0))
 
-    // Define Gaussian Kernel
-    val scalarValuedGaussianKernel : PDKernel[_3D]= GaussianKernel3D(sigma = 100.0)
-    val matrixValuedGaussianKernel = DiagonalKernel3D(scalarValuedGaussianKernel, 3) 
+    // Setup kernels
+    val scalarValuedGaussianKernel1 : PDKernel[_3D]= GaussianKernel3D(sigma = 40.0, scaleFactor = 4)
+    val scalarValuedGaussianKernel2 : PDKernel[_3D]= GaussianKernel3D(sigma = 40.0, scaleFactor = 2)
+    val scalarValuedGaussianKernel3 : PDKernel[_3D]= GaussianKernel3D(sigma = 40.0, scaleFactor = 16)
 
-    // Define Gaussian process
+    val matrixValuedGaussianKernel1 = DiagonalKernel3D(scalarValuedGaussianKernel1, scalarValuedGaussianKernel2, scalarValuedGaussianKernel3)
+
+    val matrixValuedGaussianKernel  = matrixValuedGaussianKernel1 
+
     val gp = GaussianProcess3D[EuclideanVector[_3D]](zeroMean, matrixValuedGaussianKernel)
 
-   // Define Low-rank approximation 
-    val lowRankGP = LowRankGaussianProcess.approximateGPCholesky(
-        referenceMesh,
-        gp,
-        relativeTolerance = 0.1,
-        interpolator = TriangleMeshInterpolator3D[EuclideanVector[_3D]]()
-    )
-
-    var  defField : Field[_3D, EuclideanVector[_3D]]= lowRankGP.sample()
-    referenceMesh.transform((p : Point[_3D]) => p + defField(p))
-    var pdm = PointDistributionModel3D(referenceMesh, lowRankGP)
-    var pdmView = ui.show(modelGroup, pdm, "group")
+    val lowRankGP = LowRankGaussianProcess.approximateGPCholesky(referenceMesh,gp,relativeTolerance = 0.07,interpolator = TriangleMeshInterpolator3D[EuclideanVector[_3D]]())
 
 
-    val numOfSamples: Int = 20
+    val numOfSamples: Int = 46 
     val sampleGroup = ui.createGroup("gp-sample")
 
     // Sample from the LowRankGaussianProcess object
@@ -63,11 +63,45 @@ object GPmodel extends App {
 
     for (i <- 0 until numOfSamples) {
         val defField = defFieldSamples(i) 
-        val sampleMesh = referenceMesh.transform((p : Point[_3D]) => p + defField(p))
+        val sampleMesh = referenceMesh.copy().transform((p : Point[_3D]) => p + defField(p))
+
+        val p0 = referenceLandmarks(0).point
+        val p1 = referenceLandmarks(1).point
+        val p2 = referenceLandmarks(2).point
+        val p3 = referenceLandmarks(3).point
+        val p4 = referenceLandmarks(4).point
+        val p5 = referenceLandmarks(5).point
+
+        val tp0 = p0 + defField(p0)
+        val tp1 = p1 + defField(p1)
+        val tp2 = p2 + defField(p2)
+        val tp3 = p3 + defField(p3)
+        val tp4 = p4 + defField(p4)
+        val tp5 = p5 + defField(p5)
+
+        val L0 = Landmark3D("L0", tp0)
+        val L1 = Landmark3D("L1", tp1)
+        val L2 = Landmark3D("L2", tp2)
+        val L3 = Landmark3D("L3", tp3)
+        val L4 = Landmark3D("L4", tp4)
+        val L5 = Landmark3D("L5", tp5)
+        
+        val sampleLandmarks = Seq(L0,L1,L2,L3,L4,L5)
+
         ui.show(sampleGroup, sampleMesh, s"sample-$i")
         MeshIO
             .writeMesh(sampleMesh, new java.io.File(resultDir, s"$i.stl"))
             .get
+        LandmarkIO
+        .writeLandmarksJson[_3D](
+            sampleLandmarks,
+            new java.io.File(resultDir, s"$i.json")
+        )
+        .get
     }
 
+
+    val p1 = referenceLandmarks(3).point
+    val p2 = referenceLandmarks(4).point
+    print((p1-p2).norm)
 }
