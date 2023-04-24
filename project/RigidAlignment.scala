@@ -44,7 +44,7 @@ object RigidAlignment extends App {
   val resultDir = new java.io.File("results/aligned")
   resultDir.mkdirs()
 
-  val fileIds = 0 until 46 // change to 46 to process all the files
+  val fileIds = 0 until 47 // change to 47 to process all the files
 
   val alignedGroup = ui.createGroup("aligned meshes")
 
