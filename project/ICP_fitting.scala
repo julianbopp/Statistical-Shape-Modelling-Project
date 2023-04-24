@@ -32,6 +32,15 @@ object ICP_fitting extends App {
     val points: Seq[Point[_3D]] = sampler.sample().map(pointWithProbability => pointWithProbability._1) // we only want the points
     val ptIds = points.map(point => model.reference.pointSet.findClosestPoint(point).id)
 
+    val referenceLandmarks = LandmarkIO
+      .readLandmarksJson3D(
+        new java.io.File("project-data/reference-landmarks/reference.json")
+      )
+      .get
+
+    val refLandmarkPoints = referenceLandmarks.map(_.point)
+    val refLandmarkPointIds = refLandmarkPoints.map(point => model.reference.pointSet.findClosestPoint(point))
+    print(refLandmarkPointIds)
 
     val numOfTargets = 46
 
