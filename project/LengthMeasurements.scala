@@ -77,6 +77,7 @@ object LengthMeasurements {
 
     dataFrame.plot.scatterPlot("length", "width", "Length-vs-Width").show()
     lowRankMeasurements()
+    fittedMeasurements()
   }
 
   def lowRankMeasurements(): Unit = {
@@ -87,7 +88,7 @@ object LengthMeasurements {
       )
       .get
 
-    val fileIds = 0 until 20
+    val fileIds = 0 until 46 
 
     // Computing the measurements
     val measurements = for (fileId <- fileIds) yield {
@@ -105,6 +106,44 @@ object LengthMeasurements {
 
       val length = (lmL5.point - lmL2.point).norm
       val width = (lmL3.point - lmL4.point).norm
+
+      Measurement(fileId, length, width)
+    }
+
+    println("mean and variance length: " + meanAndVariance(measurements.map(m => m.length)))
+    println("mean and variance width: " + meanAndVariance(measurements.map(m => m.width)))
+
+    val dataFrame = DataFrame(
+      Seq(
+        Column.ofContinuous(measurements.map(m => m.length), "length"),
+        Column.ofContinuous(measurements.map(m => m.width), "width")
+      )
+    )
+
+    dataFrame.plot.scatterPlot("length", "width", "Length-vs-Width").show()
+  }
+
+  def fittedMeasurements(): Unit = {
+
+    val fileIds = 0 until 46 
+
+    // Computing the measurements
+    val measurements = for (fileId <- fileIds) yield {
+      println(s"processing $fileId")
+
+      val landmarkFile =
+        new java.io.File(s"results/fittedSamples/$fileId.json")
+
+      val landmarks = LandmarkIO.readLandmarksJson3D(landmarkFile).get
+      val lmL2 = landmarks.find(lm => lm.id == "L2").get
+      val lmL5 = landmarks.find(lm => lm.id == "L5").get
+
+      val lmL3 = landmarks.find(lm => lm.id == "L3").get
+      val lmL4 = landmarks.find(lm => lm.id == "L4").get
+
+      val length = (lmL5.point - lmL2.point).norm
+      val width = (lmL3.point - lmL4.point).norm
+      print(length)
 
       Measurement(fileId, length, width)
     }
