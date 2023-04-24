@@ -65,4 +65,6 @@ object augmentedModel extends App {
     val augmentedModel = StatisticalModelIO.writeStatisticalTriangleMeshModel3D(augmentedSSM,
         new java.io.File("augmentedModel.h5")) // saving the model
     printf("done")
+
+
 }
