@@ -22,6 +22,7 @@ object ICP_fitting extends App {
     val ui = ScalismoUI()
 
     val model = StatisticalModelIO.readStatisticalTriangleMeshModel3D(new java.io.File("gpmodel.h5")).get
+    
     val targetGroup = ui.createGroup("targetGroup")
 
     val modelGroup = ui.createGroup("modelGroup")
@@ -42,7 +43,7 @@ object ICP_fitting extends App {
     val refLandmarkPointIds = refLandmarkPoints.map(point => model.reference.pointSet.findClosestPoint(point))
     print(refLandmarkPointIds)
 
-    val numOfTargets = 46
+    val numOfTargets = 47
 
     for (i <- 0 until numOfTargets) {
         val targetMesh = MeshIO.readMesh(new java.io.File(s"results/aligned/$i.stl")).get

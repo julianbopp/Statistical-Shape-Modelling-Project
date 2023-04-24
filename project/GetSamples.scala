@@ -38,15 +38,15 @@ object GetSamples extends App {
       .get
 
     
-    val fittedmodel = StatisticalModelIO.readStatisticalTriangleMeshModel3D(new java.io.File("fittedModel.h5")).get
+    val fittedmodel = StatisticalModelIO.readStatisticalTriangleMeshModel3D(new java.io.File("augmentedModel.h5")).get
     val gp = fittedmodel.gp
 
     val interpolator = TriangleMeshInterpolator3D[EuclideanVector[_3D]]()
     val contGP = fittedmodel.gp.interpolate(interpolator)
 
-    val lowRankGP = LowRankGaussianProcess.approximateGPCholesky(referenceMesh,contGP,relativeTolerance = 0.07,interpolator = TriangleMeshInterpolator3D[EuclideanVector[_3D]]())
+    val lowRankGP = LowRankGaussianProcess.approximateGPCholesky(referenceMesh,contGP,relativeTolerance = 0.01,interpolator = TriangleMeshInterpolator3D[EuclideanVector[_3D]]())
 
-    val numOfSamples: Int = 46 
+    val numOfSamples: Int = 47 
     val sampleGroup = ui.createGroup("gp-sample")
 
     // Sample from the LowRankGaussianProcess object
@@ -92,7 +92,6 @@ object GetSamples extends App {
         .get
     }
     val model = PointDistributionModel(referenceMesh,lowRankGP)  //creating the model
-    print(model.mean)
     ui.show(modelGroup , model , "gp model")
     printf("Done")
 }

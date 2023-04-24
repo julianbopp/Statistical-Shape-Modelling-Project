@@ -41,9 +41,9 @@ object GPmodel extends App {
     val zeroMean = Field(EuclideanSpace3D, (pt:Point[_3D]) => EuclideanVector3D(0,0,0))
 
     // Setup kernels
-    val scalarValuedGaussianKernel1 : PDKernel[_3D]= GaussianKernel3D(sigma = 40.0, scaleFactor = 4)
-    val scalarValuedGaussianKernel2 : PDKernel[_3D]= GaussianKernel3D(sigma = 40.0, scaleFactor = 2)
-    val scalarValuedGaussianKernel3 : PDKernel[_3D]= GaussianKernel3D(sigma = 40.0, scaleFactor = 16)
+    val scalarValuedGaussianKernel1 : PDKernel[_3D]= GaussianKernel3D(sigma = 50.0, scaleFactor = 5)
+    val scalarValuedGaussianKernel2 : PDKernel[_3D]= GaussianKernel3D(sigma = 50.0, scaleFactor = 5)
+    val scalarValuedGaussianKernel3 : PDKernel[_3D]= GaussianKernel3D(sigma = 200.0, scaleFactor = 20)
 
     val matrixValuedGaussianKernel1 = DiagonalKernel3D(scalarValuedGaussianKernel1, scalarValuedGaussianKernel2, scalarValuedGaussianKernel3)
 
@@ -54,7 +54,7 @@ object GPmodel extends App {
     val lowRankGP = LowRankGaussianProcess.approximateGPCholesky(referenceMesh,gp,relativeTolerance = 0.07,interpolator = TriangleMeshInterpolator3D[EuclideanVector[_3D]]())
 
 
-    val numOfSamples: Int = 46 
+    val numOfSamples: Int = 47 
     val sampleGroup = ui.createGroup("gp-sample")
 
     // Sample from the LowRankGaussianProcess object
