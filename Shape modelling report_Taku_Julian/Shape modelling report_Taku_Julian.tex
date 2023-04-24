@@ -14,14 +14,33 @@
 
 \maketitle
 \begin{abstract}
-Due to the femur bone being one of the largest and strongest bone in the human anatomy, It can be used in various fields of forensics for example determining the gender of a person or where the person whose femur we analyze would have originated from(continent). This is because femurs of people with similar origins or of the same gender tend to be similar. However it is likely that when examining human remains we only get a partial femur, this is where we would need femur reconstruction to model what the full femur would have looked like and analyze it. In this project we came up with a model which we would use to reconstruct given partial femurs.\\
+\noindent
+The femur bone is a crucial part of the human anatomy used in forensic science due to its size and strength. It can provide valuable insights into the gender and geographical origin of the person whose remains are being analyzed. This is because femurs of people with similar geographical origin or of the same gender tend to be similar. However it is likely that when examining human remains we only get a partial or deformed femur, this is where we would need femur reconstruction to model what the full femur would have looked like and analyze it. In this project we came up with a model which we would use to reconstruct given partial femurs. We also analyzed and validated our model using statistical approaches.\\
+
+\noindent
 $\bold{Keywords}$: femur, forensics, gender determination, reconstruction, modeling.
 \end{abstract}
 
 \section{Introduction}
+The main goal of this project is to develop a probabilistic shape model for femur bones which is used to reconstruct partial femurs.
+Femur bone reconstruction is an important task in the field of forensics as it can aid in the human identification just by analyzing the femur bones from the human remains . In this paper, we present an approach to develop a probabilistic shape model for femur bones using a combination of rigid alignment, Gaussian Process modeling, Iterative Closest Points (ICP), and Principal Component Analysis(PCA).\\
 
-We build, analyze and validate a model of the femur anatomy. Probabilistic modeling of femur anatomy has important applications in medical imaging, including computer-assisted surgery, patient-specific implant design, and bone fracture analysis. By accurate modeling of anatomical landmarks on the femur, these techniques can help improve surgical outcomes and reduce complications. In particular we construct a Gaussian Process (GP) Model using a dataset consisting of data from 46 femurs.
+\noindent
+In our approach we used a dataset of femur meshes and femur landmarks, comprising 47 samples each. We first applied rigid alignment, followed by building a Gaussian Process model(GP-model) to capture the shape variation of the femur bones. We then used an iterative alignment refinement technique called ICP to fit the GP-model by aligning the femur meshes with the model.\\
+
+\noindent
+After implementing ICP, we built a PCA model to reduce the dimensionality of the data and speed up the reconstruction process. 
+
+
+
+
+
 \section{Methods}
+\subsection{Rigid Alignment}
+\subsection{GP model}
+\subsection{ICP}
+\subsection{PCA}
+
 
 In this section you can describe the methods you used to solve the problem.
 
