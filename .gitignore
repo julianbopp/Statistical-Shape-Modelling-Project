@@ -23,3 +23,6 @@ project/results/*
 
 # playground
 playground/*
+
+# macOS
+.DS_Store
