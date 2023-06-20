@@ -11,7 +11,7 @@ import scalismo.io.{MeshIO, LandmarkIO}
 
 import scalismo.ui.api.ScalismoUI
 
-import scalismo.utils.Random.FixedSeed.randBasis
+import breeze.stats.distributions.Rand.FixedSeed.randBasis
 import scalismo.io.StatisticalModelIO
 import scalismo.statisticalmodel.PointDistributionModel
 
