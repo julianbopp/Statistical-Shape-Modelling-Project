@@ -16,7 +16,7 @@ import scalismo.plot.data.*
 import scalismo.plot.plottarget.PlotTargets.plotTargetBrowser
 import scalismo.plot.data.DataFrame.Column
 
-import scalismo.utils.Random.FixedSeed.randBasis
+import breeze.stats.distributions.Rand.FixedSeed.randBasis
 import scalismo.common.interpolation.NearestNeighborInterpolator3D
 import scalismo.ui.api.TransformationGlyph
 import breeze.stats.distributions.MultivariateGaussian
@@ -24,6 +24,7 @@ import breeze.linalg.DenseMatrix
 import breeze.linalg.DenseVector
 
 import breeze.stats.distributions.Rand.FixedSeed.randBasis
+import scalismo.utils.Random.implicits.randomGenerator
 
 
 object Sampling extends App {
