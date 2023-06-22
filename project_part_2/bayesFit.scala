@@ -115,9 +115,9 @@ object bayesFit extends App {
   }
   val posteriorEvaluator = ProductEvaluator(PriorEvaluator, LikelihoodEvaluator(data))
 
-  val genA = GaussianRandomWalkProposal(1, "rw-a-0.1").forType[Double]
-  val genB = GaussianRandomWalkProposal(20, "rw-b-0.5").forType[Double]
-  val genSigma = GaussianRandomWalkProposal(0.01, "rw-sigma-0.01").forType[Double]
+  val genA = GaussianRandomWalkProposal(0.1, "rw-a-0.1").forType[Double]
+  val genB = GaussianRandomWalkProposal(10, "rw-b-0.5").forType[Double]
+  val genSigma = GaussianRandomWalkProposal(0.1, "rw-sigma-0.01").forType[Double]
 
   val parameterGenerator = MHProductProposal(genA, genB, genSigma).forType[Parameters]
 
