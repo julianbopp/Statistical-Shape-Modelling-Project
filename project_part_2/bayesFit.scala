@@ -48,22 +48,26 @@ object bayesFit extends App {
     .values
     .map(cellValue => cellValue.toString)
 
+  val data : Seq[(Double, Double)] = boneLengths.zip(statures)
+  
     
+
+  // We need this line to seed breeze's random number generator
+  implicit val randBasisBreeze: breeze.stats.distributions.RandBasis = rng.breezeRandBasis
+  
   // prior specification
   val dSlope = Gaussian(3, 1)
   val dIntercept = Gaussian(1700, 100)
   val dSigma = Uniform(0, 50)
 
-// We need this line to seed breeze's random number generator
-  implicit val randBasisBreeze: breeze.stats.distributions.RandBasis = rng.breezeRandBasis
 
-  val a = 0.2
-  val b = 3
-  val sigma2 = 0.5
-  val errorDist = breeze.stats.distributions.Gaussian(0, sigma2)(rng.breezeRandBasis)
-  val data = for (x <- 0 until 100) yield {
-    (x.toDouble, a * x + b + errorDist.draw())
-  }
+  //val a = 0.2
+  //val b = 3
+  //val sigma2 = 0.5
+  //val errorDist = breeze.stats.distributions.Gaussian(0, sigma2)(rng.breezeRandBasis)
+  //val data = for (x <- 0 until 100) yield {
+    //(x.toDouble, a * x + b + errorDist.draw())
+  //}
 
   case class Parameters(a: Double, b: Double, sigma2: Double)
 
