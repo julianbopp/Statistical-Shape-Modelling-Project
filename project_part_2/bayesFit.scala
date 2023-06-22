@@ -1,5 +1,7 @@
-//> using scala "3.1.2"
-//> using lib "ch.unibas.cs.gravis::scalismo-ui:0.91.0"
+//> using scala "3.2"
+//> using repository "sonatype:snapshots"
+//> using dep "ch.unibas.cs.gravis::scalismo-ui:0.91.2"
+//> using dep "ch.unibas.cs.gravis::scalismo-plot:0.3-SNAPSHOT"
 
 import scalismo.sampling.MHSample
 import scalismo.sampling.MHDistributionEvaluator
@@ -13,11 +15,35 @@ import scalismo.sampling.loggers.MHSampleLogger
 import scalismo.sampling.proposals.MHMixtureProposal
 import scalismo.sampling.proposals.MHIdentityProposal
 import breeze.stats.meanAndVariance
+import scalismo.plot.data.DataFrame
 
 object bayesFit extends App {
 
   scalismo.initialize()
   implicit val rng: scalismo.utils.Random = scalismo.utils.Random(42)
+
+  // Read data using scalismo-plot
+  val dataFrame = DataFrame.fromCSV(java.io.File("Project data/statureAndSex.csv")).get
+
+  val boneLengths : Seq[Double] = dataFrame.column("bone-length")
+    .values
+    .map(cellValue => cellValue.asContinuous.value)
+
+  val statures : Seq[Double] = dataFrame.column("stature")
+    .values
+    .map(cellValue => cellValue.asContinuous.value)
+
+  val trochanterDistances : Seq[Double] = dataFrame.column("trochanter-distance")
+    .values
+    .map(cellValue => cellValue.asContinuous.value)
+
+  val sexs : Seq[String] = dataFrame.column("sex")
+    .values
+    .map(cellValue => cellValue.toString)
+
+  val ids : Seq[String] = dataFrame.column("id")
+    .values
+    .map(cellValue => cellValue.toString)
 
 // We need this line to seed breeze's random number generator
   implicit val randBasisBreeze: breeze.stats.distributions.RandBasis = rng.breezeRandBasis
