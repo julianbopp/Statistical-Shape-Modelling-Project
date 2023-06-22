@@ -92,9 +92,9 @@ object bayesFit extends App {
 
   object PriorEvaluator extends MHDistributionEvaluator[Parameters] {
 
-    val priorDistA = breeze.stats.distributions.Gaussian(0, 1)
-    val priorDistB = breeze.stats.distributions.Gaussian(0, 10)
-    val priorDistSigma = breeze.stats.distributions.LogNormal(0, 0.25)
+    val priorDistA = dSlope
+    val priorDistB = dIntercept
+    val priorDistSigma = dSigma
 
     override def logValue(theta: MHSample[Parameters]): Double = {
       priorDistA.logPdf(theta.parameters.a)
