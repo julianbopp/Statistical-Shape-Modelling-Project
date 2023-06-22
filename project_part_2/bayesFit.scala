@@ -16,6 +16,9 @@ import scalismo.sampling.proposals.MHMixtureProposal
 import scalismo.sampling.proposals.MHIdentityProposal
 import breeze.stats.meanAndVariance
 import scalismo.plot.data.DataFrame
+import breeze.stats.distributions.Gaussian
+import breeze.stats.distributions.LogNormal
+import breeze.stats.distributions.Uniform
 
 object bayesFit extends App {
 
@@ -44,6 +47,12 @@ object bayesFit extends App {
   val ids : Seq[String] = dataFrame.column("id")
     .values
     .map(cellValue => cellValue.toString)
+
+    
+  // prior specification
+  val dSlope = Gaussian(3, 1)
+  val dIntercept = Gaussian(1700, 100)
+  val dSigma = Uniform(0, 50)
 
 // We need this line to seed breeze's random number generator
   implicit val randBasisBreeze: breeze.stats.distributions.RandBasis = rng.breezeRandBasis
