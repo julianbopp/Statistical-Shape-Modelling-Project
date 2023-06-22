@@ -19,6 +19,7 @@ import scalismo.plot.data.DataFrame
 import breeze.stats.distributions.Gaussian
 import breeze.stats.distributions.LogNormal
 import breeze.stats.distributions.Uniform
+import breeze.macros.expand.sequence
 
 object bayesFit extends App {
 
@@ -48,7 +49,13 @@ object bayesFit extends App {
     .values
     .map(cellValue => cellValue.toString)
 
-  val data : Seq[(Double, Double)] = boneLengths.zip(statures)
+
+  val boneLengthsMean = boneLengths.sum / boneLengths.length
+  val staturesMean = statures.sum / statures.length
+  val demeanedBoneLengths = boneLengths.map(_ - boneLengthsMean)
+  val demeanedStatures = statures.map(_ - staturesMean)
+  //val data : Seq[(Double, Double)] = demeanedBoneLengths.zip(demeanedStatures)
+  val data : Seq[(Double, Double)] = demeanedBoneLengths.zip(statures)
   
     
 
@@ -108,8 +115,8 @@ object bayesFit extends App {
   }
   val posteriorEvaluator = ProductEvaluator(PriorEvaluator, LikelihoodEvaluator(data))
 
-  val genA = GaussianRandomWalkProposal(0.01, "rw-a-0.1").forType[Double]
-  val genB = GaussianRandomWalkProposal(0.05, "rw-b-0.5").forType[Double]
+  val genA = GaussianRandomWalkProposal(1, "rw-a-0.1").forType[Double]
+  val genB = GaussianRandomWalkProposal(20, "rw-b-0.5").forType[Double]
   val genSigma = GaussianRandomWalkProposal(0.01, "rw-sigma-0.01").forType[Double]
 
   val parameterGenerator = MHProductProposal(genA, genB, genSigma).forType[Parameters]
