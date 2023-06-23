@@ -297,5 +297,4 @@ object MCMCfit extends App {
   val resultGroup = ui.createGroup("result")
 
   ui.show(resultGroup, bestFit, "best fit")
-  ui.close()
 }
