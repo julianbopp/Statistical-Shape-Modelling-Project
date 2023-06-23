@@ -16,7 +16,6 @@ import scalismo.common.UnstructuredPointsDomain3D
 import scalismo.statisticalmodel.PointDistributionModel
 import scalismo.statisticalmodel.MultivariateNormalDistribution
 
-import scalismo.mesh.TriangleMesh
 import scalismo.transformations._
 
 import scalismo.sampling._
@@ -29,6 +28,14 @@ import scalismo.sampling.algorithms.MetropolisHastings
 import breeze.linalg.DenseVector
 import breeze.linalg.DenseMatrix
 
+import scalismo.io.{MeshIO, StatisticalModelIO, LandmarkIO}
+import scalismo.common._
+import scalismo.mesh._
+import scalismo.numerics.UniformMeshSampler3D
+import scalismo.io.{MeshIO, StatisticalModelIO, LandmarkIO}
+
+import scalismo.ui.api._
+
 object MCMCfit extends App {
 
   implicit val rng: scalismo.utils.Random = scalismo.utils.Random(42)
@@ -37,28 +44,21 @@ object MCMCfit extends App {
 
   val ui = ScalismoUI()
 
+  // Load and display shape model
   val model =
-    StatisticalModelIO.readStatisticalTriangleMeshModel3D(new java.io.File("datasets/bfm.h5")).get
-
+    StatisticalModelIO.readStatisticalTriangleMeshModel3D(new java.io.File("ssm.h5")).get
   val modelGroup = ui.createGroup("model")
   val modelView = ui.show(modelGroup, model, "model")
   modelView.referenceView.opacity = 0.5
 
-  val modelLms =
-    LandmarkIO.readLandmarksJson[_3D](new java.io.File("datasets/modelLM_mcmc.json")).get
-  val modelLmViews = ui.show(modelGroup, modelLms, "modelLandmarks")
-  modelLmViews.foreach(lmView => lmView.color = java.awt.Color.BLUE)
-
-  val targetGroup = ui.createGroup("target")
-
-  val targetLms =
-    LandmarkIO.readLandmarksJson3D(new java.io.File("datasets/targetLM_mcmc.json")).get
-  val targetLmViews = ui.show(targetGroup, targetLms, "targetLandmarks")
-  modelLmViews.foreach(lmView => lmView.color = java.awt.Color.RED)
-
-  val modelPoints = modelLms.map(l => l.point)
-  val targetPoints = targetLms.map(l => l.point)
-  val correspondences = modelPoints.zip(targetPoints)
+  // Load and display fragments
+  val targetGroup = ui.createGroup("fragments")
+  val targetMeshes : Seq[TriangleMesh[_3D]] = (0 until 10).flatMap { i =>
+    val filename = s"fragments-$i.stl" 
+    val mesh = MeshIO.readMesh(new java.io.File(filename)).get
+    ui.show(targetGroup, mesh, s"fragment-$i")
+    Some(mesh)
+  }
 
   def computeCenterOfMass(mesh: TriangleMesh[_3D]): Point[_3D] = {
     val normFactor = 1.0 / mesh.pointSet.numberOfPoints
