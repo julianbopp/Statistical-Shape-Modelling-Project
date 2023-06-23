@@ -36,6 +36,7 @@ import scalismo.io.{MeshIO, StatisticalModelIO, LandmarkIO}
 
 import scalismo.ui.api._
 import breeze.stats.distributions.MultivariateGaussian
+import breeze.linalg._
 
 object MCMCfit extends App {
 
@@ -129,6 +130,14 @@ object MCMCfit extends App {
     //val newDomain = UnstructuredPointsDomain3D(refPoints.toIndexedSeq)
     //val modelOnLandmarkPoints = model.newReference(newDomain, NearestNeighborInterpolator3D())
 
+    val mesh : TriangleMesh[_3D] = model.reference
+    val downsampledMesh = mesh.operations.decimate(targetedNumberOfVertices = 500)
+    val downsampledShapeModel = model.newReference(
+      newReference = downsampledMesh,
+      interpolator = TriangleMeshInterpolator3D()
+    )
+
+    val downsampledTargetMesh = targetMesh.operations.decimate(targetedNumberOfVertices = 500)
     override def logValue(sample: MHSample[Parameters]): Double = {
 
       val poseTransformation = Parameters.poseTransformationForParameters(
@@ -145,13 +154,13 @@ object MCMCfit extends App {
       )
 
       //
-      val noiseModel = MultivariateGaussian(DenseVector.zeros[Double](3), DenseMatrix.eye[Double](3))
-      val tranformedModel = model
+      val noiseModel = MultivariateGaussian(DenseVector.zeros[Double](3), diag(DenseVector.fill(3)(sample.parameters.noiseStddev)))
+      val transformedModel = downsampledShapeModel
         .instance(sample.parameters.poseAndShapeParameters.shapeParameters.coefficients)
         .transform(poseTransformation)
 
-      val likelihoods = for (pointOnModel <- tranformedModel.pointSet.points) yield {
-        val u = targetMesh.operations.closestPointOnSurface(pointOnModel).point - pointOnModel
+      val likelihoods = for (pointOnTarget <- downsampledTargetMesh.pointSet.points) yield {
+        val u = transformedModel.operations.closestPointOnSurface(pointOnTarget).point - pointOnTarget
         noiseModel.logPdf(u.toBreezeVector)
       }
 
@@ -160,7 +169,7 @@ object MCMCfit extends App {
     }
   }
 
-  val likelihoodEvaluator = CorrespondenceEvaluator(model, rotationCenter, targetMeshes(0))
+  val likelihoodEvaluator = CorrespondenceEvaluator(model, rotationCenter, targetMeshes(1))
   val priorEvaluator = PriorEvaluator(model).cached
 
   val posteriorEvaluator = ProductEvaluator(priorEvaluator, likelihoodEvaluator)
