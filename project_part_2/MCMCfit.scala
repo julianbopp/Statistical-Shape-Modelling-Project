@@ -37,6 +37,8 @@ import scalismo.io.{MeshIO, StatisticalModelIO, LandmarkIO}
 import scalismo.ui.api._
 import breeze.stats.distributions.MultivariateGaussian
 import breeze.linalg._
+import scalismo.plot.data.*
+import scalismo.plot.plottarget.PlotTargets.plotTargetBrowser
 
 object MCMCfit extends App {
 
@@ -100,7 +102,7 @@ object MCMCfit extends App {
 
     val translationPrior = breeze.stats.distributions.Gaussian(0.0, 5.0)
     val rotationPrior = breeze.stats.distributions.Gaussian(0, 0.1)
-    val noisePrior = breeze.stats.distributions.LogNormal(0, 0.25)
+    val noisePrior = breeze.stats.distributions.LogNormal(1, 0.25)
 
     override def logValue(sample: MHSample[Parameters]): Double = {
       val poseAndShapeParameters = sample.parameters.poseAndShapeParameters
@@ -131,13 +133,13 @@ object MCMCfit extends App {
     //val modelOnLandmarkPoints = model.newReference(newDomain, NearestNeighborInterpolator3D())
 
     val mesh : TriangleMesh[_3D] = model.reference
-    val downsampledMesh = mesh.operations.decimate(targetedNumberOfVertices = 500)
+    val downsampledMesh = mesh.operations.decimate(targetedNumberOfVertices = 200)
     val downsampledShapeModel = model.newReference(
       newReference = downsampledMesh,
       interpolator = TriangleMeshInterpolator3D()
     )
 
-    val downsampledTargetMesh = targetMesh.operations.decimate(targetedNumberOfVertices = 500)
+    val downsampledTargetMesh = targetMesh.operations.decimate(targetedNumberOfVertices = 200)
     override def logValue(sample: MHSample[Parameters]): Double = {
 
       val poseTransformation = Parameters.poseTransformationForParameters(
@@ -145,16 +147,8 @@ object MCMCfit extends App {
         sample.parameters.poseAndShapeParameters.rotationParameters,
         rotationCenter
       )
-
       val modelCoefficients = sample.parameters.poseAndShapeParameters.shapeParameters.coefficients
-
-      val lmUncertainty = MultivariateNormalDistribution(
-        DenseVector.zeros[Double](3),
-        DenseMatrix.eye[Double](3) * sample.parameters.noiseStddev
-      )
-
-      //
-      val noiseModel = MultivariateGaussian(DenseVector.zeros[Double](3), diag(DenseVector.fill(3)(sample.parameters.noiseStddev)))
+      val noiseModel = MultivariateGaussian(DenseVector.zeros[Double](3), DenseMatrix.eye[Double](3) * sample.parameters.noiseStddev)
       val transformedModel = downsampledShapeModel
         .instance(sample.parameters.poseAndShapeParameters.shapeParameters.coefficients)
         .transform(poseTransformation)
@@ -169,29 +163,29 @@ object MCMCfit extends App {
     }
   }
 
-  val likelihoodEvaluator = CorrespondenceEvaluator(model, rotationCenter, targetMeshes(1))
+  val likelihoodEvaluator = CorrespondenceEvaluator(model, rotationCenter, targetMeshes(6))
   val priorEvaluator = PriorEvaluator(model).cached
 
   val posteriorEvaluator = ProductEvaluator(priorEvaluator, likelihoodEvaluator)
 
   val rotationProposal = MHProductProposal(
-    GaussianRandomWalkProposal(0.01, "rx").forType[Double],
-    GaussianRandomWalkProposal(0.01, "ry").forType[Double],
+    GaussianRandomWalkProposal(0.001, "rx").forType[Double],
+    GaussianRandomWalkProposal(0.001, "ry").forType[Double],
     GaussianRandomWalkProposal(0.01, "rz").forType[Double]
   ).forType[RotationParameters]
 
   val translationProposal = MHProductProposal(
-    GaussianRandomWalkProposal(1.0, "tx").forType[Double],
-    GaussianRandomWalkProposal(1.0, "ty").forType[Double],
-    GaussianRandomWalkProposal(1.0, "tz").forType[Double]
+    GaussianRandomWalkProposal(0.2, "tx").forType[Double],
+    GaussianRandomWalkProposal(0.2, "ty").forType[Double],
+    GaussianRandomWalkProposal(0.2, "tz").forType[Double]
   ).forType[TranslationParameters]
 
   val shapeProposalLeading =
-    GaussianRandomWalkProposal(0.01, "shape-0-5")
+    GaussianRandomWalkProposal(0.07, "shape-0-5")
       .partial(0 until 5)
       .forType[ShapeParameters]
   val shapeProposalRemaining =
-    GaussianRandomWalkProposal(0.01, "shape-6-")
+    GaussianRandomWalkProposal(0.2, "shape-6-")
       .partial(6 until model.rank)
       .forType[ShapeParameters]
 
@@ -265,7 +259,7 @@ object MCMCfit extends App {
       RotationParameters((0.0, 0.0, 0.0)),
       ShapeParameters(DenseVector.zeros[Double](model.rank))
     ),
-    noiseStddev = 1.0
+    noiseStddev = 10
   )
 
   val mhIterator = chain.iterator(MHSample(initialParameters, "inital"), logger)
@@ -288,22 +282,41 @@ object MCMCfit extends App {
     sample
   }
 
-  val samples = samplingIterator.drop(1000).take(10000).toIndexedSeq
+  val numOfIters = 5000 
+  val samples = samplingIterator.drop(2400).take(numOfIters).toIndexedSeq
   println(logger.samples.acceptanceRatios)
 
-  val bestSample = samples.maxBy(posteriorEvaluator.logValue)
+  val logValues = samples.map(sample => posteriorEvaluator.logValue(sample))
+  //println(logValues)
 
-  val bestPoseAndShapeParameters = bestSample.parameters.poseAndShapeParameters
-  val bestPoseTransformation = Parameters.poseTransformationForParameters(
-    bestPoseAndShapeParameters.translationParameters,
-    bestPoseAndShapeParameters.rotationParameters,
-    rotationCenter
+  //val bestSample = samples.maxBy(posteriorEvaluator.logValue)
+
+  //val bestPoseAndShapeParameters = bestSample.parameters.poseAndShapeParameters
+  //val bestPoseTransformation = Parameters.poseTransformationForParameters(
+    //bestPoseAndShapeParameters.translationParameters,
+    //bestPoseAndShapeParameters.rotationParameters,
+    //rotationCenter
+  //)
+
+  //val bestFit = model
+    //.instance(bestPoseAndShapeParameters.shapeParameters.coefficients)
+    //.transform(bestPoseTransformation)
+  //val resultGroup = ui.createGroup("result")
+
+  //ui.show(resultGroup, bestFit, "best fit")
+
+  val iterationsInt = 1 to numOfIters
+  val iterations = iterationsInt.map(x => x.toDouble)
+  val df = DataFrame(
+    Seq(
+      DataFrame.Column.ofContinuous(iterations, "iterations"),
+      DataFrame.Column.ofContinuous(logValues, "logValues"),
+    )
   )
 
-  val bestFit = model
-    .instance(bestPoseAndShapeParameters.shapeParameters.coefficients)
-    .transform(bestPoseTransformation)
-  val resultGroup = ui.createGroup("result")
-
-  ui.show(resultGroup, bestFit, "best fit")
+  df.plot.linePlot(
+    x = "iterations",
+    y = "logValues",
+    title = "test"
+  ).show()
 }
