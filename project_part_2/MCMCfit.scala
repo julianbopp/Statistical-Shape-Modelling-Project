@@ -35,6 +35,7 @@ import scalismo.numerics.UniformMeshSampler3D
 import scalismo.io.{MeshIO, StatisticalModelIO, LandmarkIO}
 
 import scalismo.ui.api._
+import breeze.stats.distributions.MultivariateGaussian
 
 object MCMCfit extends App {
 
@@ -54,9 +55,9 @@ object MCMCfit extends App {
   // Load and display fragments
   val targetGroup = ui.createGroup("fragments")
   val targetMeshes : Seq[TriangleMesh[_3D]] = (0 until 10).flatMap { i =>
-    val filename = s"fragments-$i.stl" 
-    val mesh = MeshIO.readMesh(new java.io.File(filename)).get
-    ui.show(targetGroup, mesh, s"fragment-$i")
+    val filename = s"fragment-$i.stl" 
+    val mesh = MeshIO.readMesh(new java.io.File(s"Project data/fragments/$filename")).get
+    //ui.show(targetGroup, mesh, s"fragment-$i")
     Some(mesh)
   }
 
@@ -119,14 +120,14 @@ object MCMCfit extends App {
   case class CorrespondenceEvaluator(
       model: PointDistributionModel[_3D, TriangleMesh],
       rotationCenter: Point[_3D],
-      correspondences: Seq[(Point[_3D], Point[_3D])]
+      targetMesh: TriangleMesh[_3D]
   ) extends MHDistributionEvaluator[Parameters] {
 
     // we extract the points and build a model from only the points
-    val (refPoints, targetPoints) = correspondences.unzip
+    //val (refPoints, targetPoints) = correspondences.unzip
 
-    val newDomain = UnstructuredPointsDomain3D(refPoints.toIndexedSeq)
-    val modelOnLandmarkPoints = model.newReference(newDomain, NearestNeighborInterpolator3D())
+    //val newDomain = UnstructuredPointsDomain3D(refPoints.toIndexedSeq)
+    //val modelOnLandmarkPoints = model.newReference(newDomain, NearestNeighborInterpolator3D())
 
     override def logValue(sample: MHSample[Parameters]): Double = {
 
@@ -137,30 +138,29 @@ object MCMCfit extends App {
       )
 
       val modelCoefficients = sample.parameters.poseAndShapeParameters.shapeParameters.coefficients
-      val currentModelInstance =
-        modelOnLandmarkPoints.instance(modelCoefficients).transform(poseTransformation)
 
       val lmUncertainty = MultivariateNormalDistribution(
         DenseVector.zeros[Double](3),
         DenseMatrix.eye[Double](3) * sample.parameters.noiseStddev
       )
 
-      val likelihoods =
-        for (
-          (pointOnInstance, targetPoint) <- currentModelInstance.pointSet.points.zip(targetPoints)
-        ) yield {
+      //
+      val noiseModel = MultivariateGaussian(DenseVector.zeros[Double](3), DenseMatrix.eye[Double](3))
+      val tranformedModel = model
+        .instance(sample.parameters.poseAndShapeParameters.shapeParameters.coefficients)
+        .transform(poseTransformation)
 
-          val observedDeformation = targetPoint - pointOnInstance
-
-          lmUncertainty.logpdf(observedDeformation.toBreezeVector)
-        }
+      val likelihoods = for (pointOnModel <- tranformedModel.pointSet.points) yield {
+        val u = targetMesh.operations.closestPointOnSurface(pointOnModel).point - pointOnModel
+        noiseModel.logPdf(u.toBreezeVector)
+      }
 
       val loglikelihood = likelihoods.sum
       loglikelihood
     }
   }
 
-  val likelihoodEvaluator = CorrespondenceEvaluator(model, rotationCenter, correspondences)
+  val likelihoodEvaluator = CorrespondenceEvaluator(model, rotationCenter, targetMeshes(0))
   val priorEvaluator = PriorEvaluator(model).cached
 
   val posteriorEvaluator = ProductEvaluator(priorEvaluator, likelihoodEvaluator)
