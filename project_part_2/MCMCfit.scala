@@ -2,7 +2,7 @@
 //> using repository "sonatype:snapshots"
 //> using dep "ch.unibas.cs.gravis::scalismo-ui:0.91.2"
 //> using dep "ch.unibas.cs.gravis::scalismo-plot:0.3-SNAPSHOT"
-
+//
 import scalismo.io.StatisticalModelIO
 import scalismo.io.LandmarkIO
 import scalismo.ui.api.ScalismoUI
@@ -133,13 +133,13 @@ object MCMCfit extends App {
     //val modelOnLandmarkPoints = model.newReference(newDomain, NearestNeighborInterpolator3D())
 
     val mesh : TriangleMesh[_3D] = model.reference
-    val downsampledMesh = mesh.operations.decimate(targetedNumberOfVertices = 200)
+    val downsampledMesh = mesh.operations.decimate(targetedNumberOfVertices = 250)
     val downsampledShapeModel = model.newReference(
       newReference = downsampledMesh,
       interpolator = TriangleMeshInterpolator3D()
     )
 
-    val downsampledTargetMesh = targetMesh.operations.decimate(targetedNumberOfVertices = 200)
+    val downsampledTargetMesh = targetMesh.operations.decimate(targetedNumberOfVertices = 250)
     override def logValue(sample: MHSample[Parameters]): Double = {
 
       val poseTransformation = Parameters.poseTransformationForParameters(
@@ -148,7 +148,7 @@ object MCMCfit extends App {
         rotationCenter
       )
       val modelCoefficients = sample.parameters.poseAndShapeParameters.shapeParameters.coefficients
-      val noiseModel = MultivariateGaussian(DenseVector.zeros[Double](3), DenseMatrix.eye[Double](3) * sample.parameters.noiseStddev)
+      val noiseModel = MultivariateGaussian(DenseVector.zeros[Double](3), DenseMatrix.eye[Double](3) * Math.abs(sample.parameters.noiseStddev))
       val transformedModel = downsampledShapeModel
         .instance(sample.parameters.poseAndShapeParameters.shapeParameters.coefficients)
         .transform(poseTransformation)
@@ -163,7 +163,7 @@ object MCMCfit extends App {
     }
   }
 
-  val likelihoodEvaluator = CorrespondenceEvaluator(model, rotationCenter, targetMeshes(6))
+  val likelihoodEvaluator = CorrespondenceEvaluator(model, rotationCenter, targetMeshes(9))
   val priorEvaluator = PriorEvaluator(model).cached
 
   val posteriorEvaluator = ProductEvaluator(priorEvaluator, likelihoodEvaluator)
@@ -282,28 +282,28 @@ object MCMCfit extends App {
     sample
   }
 
-  val numOfIters = 5000 
-  val samples = samplingIterator.drop(2400).take(numOfIters).toIndexedSeq
+  val numOfIters = 100 
+  val samples = samplingIterator.drop(0).take(numOfIters).toIndexedSeq
   println(logger.samples.acceptanceRatios)
 
   val logValues = samples.map(sample => posteriorEvaluator.logValue(sample))
   //println(logValues)
 
-  //val bestSample = samples.maxBy(posteriorEvaluator.logValue)
+  val bestSample = samples.maxBy(posteriorEvaluator.logValue)
 
-  //val bestPoseAndShapeParameters = bestSample.parameters.poseAndShapeParameters
-  //val bestPoseTransformation = Parameters.poseTransformationForParameters(
-    //bestPoseAndShapeParameters.translationParameters,
-    //bestPoseAndShapeParameters.rotationParameters,
-    //rotationCenter
-  //)
+  val bestPoseAndShapeParameters = bestSample.parameters.poseAndShapeParameters
+  val bestPoseTransformation = Parameters.poseTransformationForParameters(
+    bestPoseAndShapeParameters.translationParameters,
+    bestPoseAndShapeParameters.rotationParameters,
+    rotationCenter
+  )
 
-  //val bestFit = model
-    //.instance(bestPoseAndShapeParameters.shapeParameters.coefficients)
-    //.transform(bestPoseTransformation)
-  //val resultGroup = ui.createGroup("result")
+  val bestFit = model
+    .instance(bestPoseAndShapeParameters.shapeParameters.coefficients)
+    .transform(bestPoseTransformation)
+  val resultGroup = ui.createGroup("result")
 
-  //ui.show(resultGroup, bestFit, "best fit")
+  ui.show(resultGroup, bestFit, "best fit")
 
   val iterationsInt = 1 to numOfIters
   val iterations = iterationsInt.map(x => x.toDouble)
@@ -319,4 +319,31 @@ object MCMCfit extends App {
     y = "logValues",
     title = "test"
   ).show()
+
+  
+    val fileIds = 0 until 10
+
+    def invLogit(x: Double): Double = 1.0 / (1.0 + math.exp(-x))
+    // Computing the measurements
+    val measurements = for (fileId <- fileIds) yield {
+      println(s"processing $fileId")
+
+      val landmarkFileA =
+        new java.io.File( s"Project data/fragments/fits/fit${fileId}a.json")
+      val landmarkFileB =
+        new java.io.File( s"Project data/fragments/fits/fit${fileId}b.json")
+
+      val landmarkA = LandmarkIO.readLandmarksJson3D(landmarkFileA).get
+      val landmarkB = LandmarkIO.readLandmarksJson3D(landmarkFileB).get
+      
+      val LA = landmarkA.find(lm => lm.id == s"fit${fileId}a").get
+      val LB = landmarkB.find(lm => lm.id == s"fit${fileId}b").get
+
+
+      val length = (LA.point - LB.point).norm
+      println("sex")
+      val p = invLogit(0.495 * (length- 431) + 0.0338)
+      println(p)
+    }
+  
 }
