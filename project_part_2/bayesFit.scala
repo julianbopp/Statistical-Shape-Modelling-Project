@@ -55,7 +55,7 @@ object bayesFit extends App {
   val demeanedBoneLengths = boneLengths.map(_ - boneLengthsMean)
   val demeanedStatures = statures.map(_ - staturesMean)
   //val data : Seq[(Double, Double)] = demeanedBoneLengths.zip(demeanedStatures)
-  val data : Seq[(Double, Double)] = demeanedBoneLengths.zip(statures)
+  val data : Seq[(Double, Double)] = boneLengths.zip(statures)
   
     
 
@@ -65,7 +65,7 @@ object bayesFit extends App {
   // prior specification
   val dSlope = Gaussian(3, 1)
   val dIntercept = Gaussian(1700, 100)
-  val dSigma = Uniform(0, 50)
+  val dSigma = Uniform(1, 100)
 
 
   //val a = 0.2
@@ -91,7 +91,7 @@ object bayesFit extends App {
 
       val likelihoods = for ((x, y) <- data) yield {
         val likelihood = breeze.stats.distributions.Gaussian(
-          theta.parameters.a * x + theta.parameters.b,
+          theta.parameters.a * (x - boneLengthsMean) + theta.parameters.b,
           theta.parameters.sigma2
         )
 
@@ -115,8 +115,8 @@ object bayesFit extends App {
   }
   val posteriorEvaluator = ProductEvaluator(PriorEvaluator, LikelihoodEvaluator(data))
 
-  val genA = GaussianRandomWalkProposal(0.1, "rw-a-0.1").forType[Double]
-  val genB = GaussianRandomWalkProposal(10, "rw-b-0.5").forType[Double]
+  val genA = GaussianRandomWalkProposal(0.05, "rw-a-0.1").forType[Double]
+  val genB = GaussianRandomWalkProposal(30, "rw-b-0.5").forType[Double]
   val genSigma = GaussianRandomWalkProposal(0.1, "rw-sigma-0.01").forType[Double]
 
   val parameterGenerator = MHProductProposal(genA, genB, genSigma).forType[Parameters]
@@ -129,7 +129,7 @@ object bayesFit extends App {
   val chain = MetropolisHastings(mixtureGenerator, posteriorEvaluator)
 
   val logger = MHSampleLogger[Parameters]()
-  val initialSample = MHSample(Parameters(0.0, 0.0, 1.0), generatedBy = "initial")
+  val initialSample = MHSample(Parameters(3.0, 1700.0, 10.0), generatedBy = "initial")
 
   val mhIterator = chain.iterator(initialSample, logger)
   val samples = mhIterator.drop(1000).take(5000).toIndexedSeq
