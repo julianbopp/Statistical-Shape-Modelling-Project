@@ -10,6 +10,7 @@ import scalismo.plot.plottarget.PlotTargets.plotTargetBrowser
 import breeze.stats.distributions.Gaussian
 import breeze.stats.distributions.LogNormal
 import breeze.stats.distributions.Rand.FixedSeed.randBasis
+import breeze.stats.distributions.Uniform
 
 
 object LinearRegressionPredictiveChecks {
@@ -19,16 +20,16 @@ object LinearRegressionPredictiveChecks {
   def main(args: Array[String]): Unit = {
 
     // prior specification
-    val dSlope = Gaussian(1, 1)
-    val dIntercept = Gaussian(0, 2)
-    val dSigma = LogNormal(0, 0.25)
+    val dSlope = Gaussian(3.15, 0.016)
+    val dIntercept = Gaussian(1722.82, 20.74)
+    val dSigma = Gaussian(28.3,20.7)
 
     // samples from the prior
     val samples = for length <- 300 until 500 yield 
       val slope = dSlope.sample()
       val intercept = dIntercept.sample()
       val sigma = dSigma.sample()
-      val stature = slope * length + intercept + Gaussian(0, sigma).sample()
+      val stature = slope * (length - 431) + intercept + Gaussian(0, sigma).sample()
       Sample(length, stature, slope, intercept, sigma)
 
     // Create a scatterplot and a histogram from the samples

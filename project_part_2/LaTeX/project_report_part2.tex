@@ -26,21 +26,45 @@ Due to the femur bone's sheer size and strength, it holds immense significance w
 $\bold{Keywords}$: femur, forensics, identification, gender prediction, reconstruction, modeling, stature.\\
 
 \end{abstract}
-\section{Introduction}
+\section{Introduction} From a set of given femur data we train a regression model to predict sex and stature.
+We then use Bayesian model fitting techniques to be able reconstruct a complete bone from a partial femur. This means that we find the parameters of the shape model that best describe the partial bone. Given this reconstruction we can aquire the necessary measurements of the bone to use our regression model to predict the sex and stature from a partial bone.
 
-We use Bayesian model fitting techniques to reconstruct a complete bone from a partial femur. This means that we find the parameters of the shape model that best describe the partial bone. Given this reconstruction we can infer the stature and sex of the person that was the original host of the bone.
 \section{Methods}
+We introduce the problem setting and list the methods used to solve it.
+
+\begin{definition}[Bayesian linear regression]
+We assume that a variable $y$ is modelled as a linear function of $x$. More precisely our assumption is
+\begin{equation}
+y \sim N(a\cdot x + b, \sigma^2).
+\end{equation}
+Let $\theta = (a,b,\sigma^2)$. Given $X=(x_1,\dots,x_n)$ and $Y=(y_1,\dots,y_n)$, we want to estimate $\theta$ using the posterior
+$$p(\theta|X,Y) \propto p(Y|\theta,X)p(\theta).$$
+\end{definition}
+
+The way we solve the Bayesian linear regression model in scalismo is by specifying priors over the parameters and using the Metropolis Hastings algorithm. The Metropolis Hastings algorithm allows us to iteratively draw samples from the posterior distribution.
+
+\begin{definition}[Metropolis Hastings Algorithm]
+Given an initial sample $x$ and a proposal distribution $Q$ that is used to propose new samples we do the following steps:
+\begin{enumerate}
+\item Draw a sample $x'$ from $Q(x'|x)$.
+\item With probability $$\alpha=\text{min}\{\frac{p(x')Q(x|x')}{p(x)Q(x'|x)},1\}$$
+accept $x'$ as new state $x$.
+\item Emit current state $x$ as sample
+\end{enumerate}
+
+
+\end{definition}
+
+
+
+
 
 
 
 \section{Experiments and results}
 
 \subsection{Data and experimental setup}
-
-Explain the data with which you are experimenting.
-Highlight aspects of the data that are particularly interesting 
-for the project. 
-
+In this experiment, two datasets are used. One consists of a table of 42 measurements of stature, femur-bone-length, trochanter-distance and sex of a person. The second data set consists of 10 3D partial femurs meshes. We first train a linear and logistic regression model using the metropolis hastings algorithm, on the the measurements from the table.
 \subsection{Experimental results}
 
 

@@ -27,14 +27,13 @@ object LogisticRegression {
     import breeze.stats.distributions.Rand.FixedSeed.randBasis
 
     // prior specification
-    val dSlope = Gaussian(3, 1)
-    val dIntercept = Gaussian(-1000, 100)
-
+    val dSlope = Gaussian(0.495, 0.06)
+    val dIntercept = Gaussian(0.0338, 0.0062)
     // samples from the prior
     val samples = for length <- 300 until 500 yield 
       val slope = dSlope.sample()
       val intercept = dIntercept.sample()
-      val p = invLogit(slope * (length) + intercept)
+      val p = invLogit(slope * (length- 400) + intercept)
       val sex = breeze.stats.distributions.Bernoulli(p).sample()
       Sample(length, p, if sex == true then Sex.Male else Sex.Female, slope, intercept)
 

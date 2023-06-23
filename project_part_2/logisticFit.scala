@@ -20,8 +20,10 @@ import breeze.stats.distributions.Gaussian
 import breeze.stats.distributions.LogNormal
 import breeze.stats.distributions.Uniform
 import breeze.macros.expand.sequence
+import breeze.stats.distributions.Bernoulli
+import scala.math._
 
-object bayesFit extends App {
+object logisticFit extends App {
 
   scalismo.initialize()
   implicit val rng: scalismo.utils.Random = scalismo.utils.Random(42)
@@ -55,18 +57,19 @@ object bayesFit extends App {
   val demeanedBoneLengths = boneLengths.map(_ - boneLengthsMean)
   val demeanedStatures = statures.map(_ - staturesMean)
   //val data : Seq[(Double, Double)] = demeanedBoneLengths.zip(demeanedStatures)
-  val data : Seq[(Double, Double)] = boneLengths.zip(statures)
+  val data : Seq[(Double, String)] = boneLengths.zip(sexs)
   
-    
+  
+  // the inverse logit function
+  def invLogit(x: Double): Double = 1.0 / (1.0 + math.exp(-x))
 
   // We need this line to seed breeze's random number generator
   implicit val randBasisBreeze: breeze.stats.distributions.RandBasis = rng.breezeRandBasis
   
   // prior specification
-  val dSlope = Gaussian(3, 1)
-  val dIntercept = Gaussian(1700, 100)
-  val dSigma = Uniform(1, 100)
-  println(boneLengthsMean)
+  val dSlope = Gaussian(0.5, 0.1)
+  val dIntercept = Gaussian(0, 0.1)
+
 
   //val a = 0.2
   //val b = 3
@@ -76,26 +79,34 @@ object bayesFit extends App {
     //(x.toDouble, a * x + b + errorDist.draw())
   //}
 
-  case class Parameters(a: Double, b: Double, sigma2: Double)
+  case class Parameters(a: Double, b: Double)
 
   implicit object tuple3ParameterConversion
-      extends ParameterConversion[Tuple3[Double, Double, Double], Parameters] {
-    def from(p: Parameters): Tuple3[Double, Double, Double] = (p.a, p.b, p.sigma2)
-    def to(t: Tuple3[Double, Double, Double]): Parameters =
-      Parameters(a = t._1, b = t._2, sigma2 = t._3)
+      extends ParameterConversion[Tuple2[Double, Double], Parameters] {
+    def from(p: Parameters): Tuple2[Double, Double] = (p.a, p.b)
+    def to(t: Tuple2[Double, Double]): Parameters =
+      Parameters(a = t._1, b = t._2)
   }
-  case class LikelihoodEvaluator(data: Seq[(Double, Double)])
+  case class LikelihoodEvaluator(data: Seq[(Double, String)])
       extends MHDistributionEvaluator[Parameters] {
 
     override def logValue(theta: MHSample[Parameters]): Double = {
 
       val likelihoods = for ((x, y) <- data) yield {
-        val likelihood = breeze.stats.distributions.Gaussian(
-          theta.parameters.a * (x - boneLengthsMean) + theta.parameters.b,
-          theta.parameters.sigma2
-        )
+        var i = 0
+        if (y.equals("m")) {
+          
+          val likelihood = invLogit(theta.parameters.a * (x - boneLengthsMean) + theta.parameters.b)
+          log(likelihood)
+           
+        } else {
+          
+          val likelihood = 1 - invLogit(theta.parameters.a * (x - boneLengthsMean) + theta.parameters.b)
+          log(likelihood)
 
-        likelihood.logPdf(y)
+        }
+        
+
       }
       likelihoods.sum
     }
@@ -105,34 +116,31 @@ object bayesFit extends App {
 
     val priorDistA = dSlope
     val priorDistB = dIntercept
-    val priorDistSigma = dSigma
 
     override def logValue(theta: MHSample[Parameters]): Double = {
       priorDistA.logPdf(theta.parameters.a)
       +priorDistB.logPdf(theta.parameters.b)
-      +priorDistSigma.logPdf(theta.parameters.sigma2)
     }
   }
   val posteriorEvaluator = ProductEvaluator(PriorEvaluator, LikelihoodEvaluator(data))
 
-  val genA = GaussianRandomWalkProposal(0.05, "rw-a-0.1").forType[Double]
-  val genB = GaussianRandomWalkProposal(30, "rw-b-0.5").forType[Double]
-  val genSigma = GaussianRandomWalkProposal(0.1, "rw-sigma-0.01").forType[Double]
+  val genA = GaussianRandomWalkProposal(0.1, "rw-a-0.1").forType[Double]
+  val genB = GaussianRandomWalkProposal(0.1, "rw-b-0.5").forType[Double]
 
-  val parameterGenerator = MHProductProposal(genA, genB, genSigma).forType[Parameters]
+  val parameterGenerator = MHProductProposal(genA, genB).forType[Parameters]
 
   val identProposal = MHIdentityProposal.forType[Double]
   val noiseOnlyGenerator =
-    MHProductProposal(identProposal, identProposal, genSigma).forType[Parameters]
+    MHProductProposal(identProposal, identProposal).forType[Parameters]
 
-  val mixtureGenerator = MHMixtureProposal((0.1, noiseOnlyGenerator), (0.9, parameterGenerator))
+  val mixtureGenerator = MHMixtureProposal((0.01, noiseOnlyGenerator), (0.99, parameterGenerator))
   val chain = MetropolisHastings(mixtureGenerator, posteriorEvaluator)
 
   val logger = MHSampleLogger[Parameters]()
-  val initialSample = MHSample(Parameters(3.0, 1700.0, 10.0), generatedBy = "initial")
+  val initialSample = MHSample(Parameters(0.5, 0), generatedBy = "initial")
 
   val mhIterator = chain.iterator(initialSample, logger)
-  val samples = mhIterator.drop(1000).take(5000).toIndexedSeq
+  val samples = mhIterator.drop(1000).take(10000).toIndexedSeq
   val meanAndVarianceA = meanAndVariance(samples.map(_.parameters.a))
   println(
     s"Estimates for parameter a: mean = ${meanAndVarianceA.mean}, var = ${meanAndVarianceA.variance}"
@@ -140,10 +148,6 @@ object bayesFit extends App {
   val meanAndVarianceB = meanAndVariance(samples.map(_.parameters.b))
   println(
     s"Estimates for parameter b: mean = ${meanAndVarianceB.mean}, var = ${meanAndVarianceB.variance}"
-  )
-  val meanAndVarianceSigma2 = meanAndVariance(samples.map(_.parameters.sigma2))
-  println(
-    s"Estimates for parameter sigma2: mean = ${meanAndVarianceSigma2.mean}, var = ${meanAndVarianceSigma2.variance}"
   )
   println("Acceptance ratios: " + logger.samples.acceptanceRatios)
   println(
